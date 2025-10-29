@@ -37,6 +37,28 @@
                             return-object
                             hide-details
                         ></v-select>
+                        <v-form ref="form" class="pt-4 pb-0 px-0" v-if="showJustificationField">
+                            <div class="az-bpm-modal__item">
+                                <div class="az-text">
+                                    <label for="activities" class="grey--text text--darken-3">
+                                        <b> {{ getLabelJustificationField }} </b>
+                                    </label>
+                                    <span class="red--text">*</span>
+                                </div>
+                                <v-textarea
+                                    id="observacao"
+                                    v-model="justificationField"
+                                    :rules="[(rulesText) => regras[0](rulesText, getMaxLengthsJustificationField)]"
+                                    style="height: auto !important"
+                                    name="Motivo"
+                                    :hint="charCount(getMaxLengthsJustificationField)"
+                                    :maxLength="getMaxLengthsJustificationField"
+                                    no-resize
+                                    rows="3"
+                                    placeholder="Informe"
+                                ></v-textarea>
+                            </div>
+                        </v-form>
                     </v-col>
                     <v-col class="az-bpm-modal__item" cols="12" v-if="isButtonTypeRoute && selectRouteShow">
                         <div class="az-text">
@@ -129,45 +151,54 @@ export default {
     props: {
         show: {
             type: Boolean,
-            default: false,
+            default: false
         },
         buttonType: {
             type: String,
-            default: '',
+            default: ''
         },
         currentTask: {
             type: Object,
-            default: () => ({}),
+            default: () => ({})
         },
         components: {
             type: Object,
-            default: () => ({}),
+            default: () => ({})
         },
     },
+    inject: ['$validator'],
     data() {
         return {
             selectedUO: '',
             selectedHumanDecision: null,
             selectedRoute: null,
             selectedOrganizationalStructure: null,
+            justificationField: '',
             organizationalStructure: [
                 {
                     value: 'acronymTypeAdministrationCompleted',
-                    text: 'Órgão',
+                    text: 'Órgão'
                 },
                 {
                     value: 'upperHierarchyCode',
-                    text: 'Unidade Organizacional',
-                },
-            ],
+                    text: 'Unidade Organizacional'
+                }
+            ]
         }
     },
     methods: {
-        emitActionEvent() {
-            this.$emit('action', {
-                buttonType: this.buttonType,
-                bpmParameters: this.bpmParameters,
-            })
+        async emitActionEvent() {
+            let validatedForm = true
+            if (this.showJustificationField && this.$refs.form) {
+                validatedForm = await this.$refs.form.validate()
+            }
+
+            if (validatedForm) {
+                this.$emit('action', {
+                    buttonType: this.buttonType,
+                    bpmParameters: this.bpmParameters
+                })
+            }
         },
         initializeUOSelect() {
             if (this.selectUOShow && !this.selectedUO) {
@@ -177,6 +208,13 @@ export default {
         resetUOSelectIfInvalidValue() {
             if (this.selectedUO && !this.selectHasGivenValue(this.selectUOItems, this.selectedUO)) {
                 this.resetUOSelect()
+            }
+        },
+        resetJustificationField() {
+            this.justificationField = ''
+
+            if (this.showJustificationField && this.$refs.form) {
+                this.$refs.form.reset()
             }
         },
         resetUOSelect() {
@@ -217,10 +255,15 @@ export default {
             this.selectedOrganizationalStructure = null
         },
         resetAll() {
+            if (this.showJustificationField && this.$refs.form) {
+                this.$refs.form.reset()
+            }
             this.resetUOSelect()
             this.resetHumanDecisionSelect()
             this.resetRouteSelect()
             this.resetSelectedOrganizationalStructure()
+            this.resetJustificationField()
+
         },
         initializeAll() {
             this.initializeUOSelect()
@@ -258,6 +301,24 @@ export default {
             if (this.isButtonTypeRoute && this.selectedRoute) {
                 _.merge(bpmParameters, this.routeParameters)
             }
+        },
+        addJustificationFieldIfNeeded(bpmParameters) {
+            if (this.showJustificationField) {
+                _.merge(bpmParameters, {justificationField: this.justificationField})
+            }
+        },
+        charCount(
+            limite = 100
+        ) {
+            if (this.justificationField) {
+                if (this.justificationField.length < limite) {
+                    return `${limite - this.justificationField.length} caracteres restantes.`
+                } else {
+                    return `Limite de ${limite} caracteres foi atingido`
+                }
+            } else {
+                return ''
+            }
         }
     },
     watch: {
@@ -292,6 +353,7 @@ export default {
         selectedHumanDecision() {
             this.resetSelectedOrganizationalStructureIfInvalidValue()
             this.resetUOSelectIfInvalidValue()
+            this.resetJustificationField()
         }
     },
     computed: {
@@ -300,6 +362,46 @@ export default {
         },
         nextTasks() {
             return this.currentTask.nextTasks || []
+        },
+        nextTaskFilteredWithSelectedHumanDecision() {
+            if (this.selectedHumanDecision && this.nextTasks.length) {
+                const nextTask = this.nextTasks.find((nextTask) => nextTask.taskId === this.selectedHumanDecision.value)
+
+                return nextTask || null
+            } else {
+                return null
+            }
+        },
+        showJustificationField() {
+            if (this.nextTaskFilteredWithSelectedHumanDecision && Object.keys(this.nextTaskFilteredWithSelectedHumanDecision).length) {
+                return Object.keys(this.nextTaskFilteredWithSelectedHumanDecision).includes('justificativa')
+            } else {
+                return false
+            }
+        },
+        getLabelJustificationField() {
+            if (this.showJustificationField) {
+                const justificativa = JSON.parse(this.nextTaskFilteredWithSelectedHumanDecision.justificativa)
+                if (Object.keys(justificativa).includes('label')) {
+                    return justificativa.label
+                } else {
+                    return 'Motivo'
+                }
+            } else {
+                return 'Motivo'
+            }
+        },
+        getMaxLengthsJustificationField() {
+            if (this.showJustificationField) {
+                const justificativa = JSON.parse(this.nextTaskFilteredWithSelectedHumanDecision.justificativa)
+                if (Object.keys(justificativa).includes('maxLength')) {
+                    return Number(justificativa.maxLength) > 4000 ? 4000 : Number(justificativa.maxLength)
+                } else {
+                    return 100
+                }
+            } else {
+                return 100
+            }
         },
         currentTaskName() {
             return this.currentTask ? this.currentTask.name : '-'
@@ -364,7 +466,7 @@ export default {
 
             return uos.map((uo) => ({
                 text: `${uo.codigoHierarquiaFormatado} - ${uo.sigla} - ${uo.nome}`,
-                value: uo.id,
+                value: uo.id
             }))
         },
         originUO() {
@@ -378,22 +480,23 @@ export default {
             this.addUoDestinationParametersIfNeeded(parameters)
             this.addHumanDecisionParametersIfNeeded(parameters)
             this.addRouteParametersIfNeeded(parameters)
+            this.addJustificationFieldIfNeeded(parameters)
 
             return parameters
         },
         completeParameters() {
             return {
-                humanDecision: this.selectedHumanDecision && this.selectedHumanDecision.value,
+                humanDecision: this.selectedHumanDecision && this.selectedHumanDecision.value
             }
         },
         routeParameters() {
             return {
-                activityIdDestination: this.selectedRoute && this.selectedRoute.value,
+                activityIdDestination: this.selectedRoute && this.selectedRoute.value
             }
         },
         uoDestinationParameters() {
             return {
-                uoDestinationId: this.selectedUO,
+                uoDestinationId: this.selectedUO
             }
         },
         organizationalStructureShow() {
@@ -401,12 +504,25 @@ export default {
                 (this.selectedHumanDecision && this.selectedHumanDecision.requiresUO) ||
                 (this.selectedRoute && this.selectedRoute.requiresUO)
             )
-        }
+        },
+        regras: () => [
+            (value, maxLength = 4000, message = 'Campo obrigatório!') => {
+                if (typeof value === 'string') {
+                    if (value.length <= maxLength) {
+                        return (!!value && value.trim().length > 0) || message
+                    } else {
+                        return `O campo deve conter no máximo ${maxLength} caracteres!`
+                    }
+                } else {
+                    return !!value || message
+                }
+            },
+        ],
     },
     created() {
         this.resetAll()
         this.initializeAll()
-    },
+    }
 }
 </script>
 <style lang="stylus">
