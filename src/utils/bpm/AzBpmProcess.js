@@ -26,6 +26,10 @@ export default class AzBpmProcess {
             })
     }
 
+    loadNextTasks() {
+        return this._loadNextTasks()
+    }
+
     initialize() {
         this._initializeProcessSharedVariables()
         this._initializeProcessInstance()

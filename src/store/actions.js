@@ -148,6 +148,16 @@ export default {
         return response.data
     },
 
+    async [actionTypes.BPM.GET_NEXT_TASKS]({ commit, state }, { processKey, businessKey }) {
+        const taskKey = state.bpm.process[processKey][businessKey].instance.currentTask.key
+        const response = await axiosInstance.get(
+            `${state.bpm.api}/getNextTasksByDefinition/${processKey}/${businessKey}?taskDefinitionKey=${taskKey}`
+        )
+        commit(mutationTypes.BPM.SET_NEXT_TASKS, { processKey, businessKey, nextTasks: response.data.nextTasks })
+
+        return response.data
+    },
+
     [actionTypes.BPM.CLAIM]({ state }, { taskId }) {
         return axiosInstance.get(`${state.bpm.api}/claim/${taskId}`)
     },

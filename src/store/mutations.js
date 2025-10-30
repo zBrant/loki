@@ -213,6 +213,13 @@ export default {
         Vue.set(state.bpm.process[processKey], 'userTasks', userTasks)
     },
 
+    [mutationTypes.BPM.SET_NEXT_TASKS](state, { processKey, businessKey, nextTasks }) {
+        const process = state.bpm.process[processKey][businessKey]
+        const instance = process.instance || {}
+
+        Vue.set(instance.currentTask, 'nextTasks', nextTasks)
+    },
+
     [mutationTypes.BPM.SET_CURRENT_TASK](state, { processKey, businessKey, currentTask }) {
         Vue.set(state.bpm.process[processKey][businessKey], 'currentTask', currentTask)
     },
