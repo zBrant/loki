@@ -37,22 +37,22 @@
                             return-object
                             hide-details
                         ></v-select>
-                        <v-form ref="form" class="pt-4 pb-0 px-0" v-if="showJustificationField">
+                        <v-form ref="form" class="pt-4 pb-0 px-0" v-if="nextTaskFilteredWithSelectedHumanDecision">
                             <div class="az-bpm-modal__item">
                                 <div class="az-text">
                                     <label for="activities" class="grey--text text--darken-3">
-                                        <b> {{ getLabelJustificationField }} </b>
+                                        <b> {{ getAttributeJustification('label', 'Motivo') }} </b>
                                     </label>
                                     <span class="red--text">*</span>
                                 </div>
                                 <v-textarea
                                     id="observacao"
                                     v-model="justificationField"
-                                    :rules="[(rulesText) => regras[0](rulesText, getMaxLengthsJustificationField)]"
+                                    :rules="[(rulesText) => regras[0](rulesText, getAttributeJustification('maxLength', 1000))]"
                                     style="height: auto !important"
                                     name="Motivo"
-                                    :hint="charCount(getMaxLengthsJustificationField)"
-                                    :maxLength="getMaxLengthsJustificationField"
+                                    :hint="charCount(getAttributeJustification('maxLength', 1000))"
+                                    :maxLength="getAttributeJustification('maxLength', 1000)"
                                     no-resize
                                     rows="3"
                                     placeholder="Informe"
@@ -189,7 +189,7 @@ export default {
     methods: {
         async emitActionEvent() {
             let validatedForm = true
-            if (this.showJustificationField && this.$refs.form) {
+            if (this.nextTaskFilteredWithSelectedHumanDecision && this.$refs.form) {
                 validatedForm = await this.$refs.form.validate()
             }
 
@@ -213,7 +213,7 @@ export default {
         resetJustificationField() {
             this.justificationField = ''
 
-            if (this.showJustificationField && this.$refs.form) {
+            if (this.nextTaskFilteredWithSelectedHumanDecision && this.$refs.form) {
                 this.$refs.form.reset()
             }
         },
@@ -255,7 +255,7 @@ export default {
             this.selectedOrganizationalStructure = null
         },
         resetAll() {
-            if (this.showJustificationField && this.$refs.form) {
+            if (this.nextTaskFilteredWithSelectedHumanDecision && this.$refs.form) {
                 this.$refs.form.reset()
             }
             this.resetUOSelect()
@@ -303,13 +303,18 @@ export default {
             }
         },
         addJustificationFieldIfNeeded(bpmParameters) {
-            if (this.showJustificationField) {
-                _.merge(bpmParameters, {justificationField: this.justificationField})
+            if (this.nextTaskFilteredWithSelectedHumanDecision) {
+                _.merge(bpmParameters, { justificationField: this.justificationField })
             }
         },
-        charCount(
-            limite = 100
-        ) {
+        getAttributeJustification(attribute, defaultValue) {
+            if (this.nextTaskFilteredWithSelectedHumanDecision && Object.keys(this.nextTaskFilteredWithSelectedHumanDecision).includes(attribute)) {
+                return this.nextTaskFilteredWithSelectedHumanDecision[attribute]
+            } else {
+                return defaultValue
+            }
+        },
+        charCount(limite = 100) {
             if (this.justificationField) {
                 if (this.justificationField.length < limite) {
                     return `${limite - this.justificationField.length} caracteres restantes.`
@@ -367,41 +372,12 @@ export default {
             if (this.selectedHumanDecision && this.nextTasks.length) {
                 const nextTask = this.nextTasks.find((nextTask) => nextTask.taskId === this.selectedHumanDecision.value)
 
-                return nextTask || null
-            } else {
-                return null
-            }
-        },
-        showJustificationField() {
-            if (this.nextTaskFilteredWithSelectedHumanDecision && Object.keys(this.nextTaskFilteredWithSelectedHumanDecision).length) {
-                return Object.keys(this.nextTaskFilteredWithSelectedHumanDecision).includes('justificativa')
-            } else {
-                return false
-            }
-        },
-        getLabelJustificationField() {
-            if (this.showJustificationField) {
-                const justificativa = JSON.parse(this.nextTaskFilteredWithSelectedHumanDecision.justificativa)
-                if (Object.keys(justificativa).includes('label')) {
-                    return justificativa.label
-                } else {
-                    return 'Motivo'
+                if (nextTask && Object.keys(nextTask).includes('justificativa')) {
+                    return JSON.parse(nextTask.justificativa)
                 }
-            } else {
-                return 'Motivo'
             }
-        },
-        getMaxLengthsJustificationField() {
-            if (this.showJustificationField) {
-                const justificativa = JSON.parse(this.nextTaskFilteredWithSelectedHumanDecision.justificativa)
-                if (Object.keys(justificativa).includes('maxLength')) {
-                    return Number(justificativa.maxLength) > 4000 ? 4000 : Number(justificativa.maxLength)
-                } else {
-                    return 100
-                }
-            } else {
-                return 100
-            }
+
+            return null
         },
         currentTaskName() {
             return this.currentTask ? this.currentTask.name : '-'

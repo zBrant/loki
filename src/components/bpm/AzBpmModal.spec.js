@@ -481,9 +481,9 @@ describe('AzBpmModal.extra.coverage', () => {
             wrapper = mountWith({ overrideProps: override })
             wrapper.setData({ selectedHumanDecision: { value: 't2' } })
             await Vue.nextTick()
-            expect(wrapper.vm.showJustificationField).toBe(true)
-            expect(wrapper.vm.getLabelJustificationField).toBe('Motivo detalhado')
-            expect(wrapper.vm.getMaxLengthsJustificationField).toBe(4000)
+            expect(wrapper.vm.nextTaskFilteredWithSelectedHumanDecision).toBeTruthy()
+            expect(wrapper.vm.getAttributeJustification('label', 'Motivo')).toBe('Motivo detalhado')
+            expect(wrapper.vm.getAttributeJustification('maxLength', 1000)).toBe(10000)
         })
 
         it('charCount messages for empty, remaining, and limit reached', async () => {
