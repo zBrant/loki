@@ -1,4 +1,4 @@
-import {actionTypes, mutationTypes} from '../../store'
+import { actionTypes, mutationTypes } from '../../store'
 import Vue from 'vue'
 
 export default class AzBpmProcess {
@@ -94,11 +94,13 @@ export default class AzBpmProcess {
         }
         return hasPermission
     }
+
     actionExistsInItem(permissions, actions, item) {
         return permissions.some(
             (obj) => obj.chave === item && actions.every((letter) => obj.autorizacao.includes(letter))
         )
     }
+
     permissionExtensionsExists(permission, currentTaskExtensions) {
         return currentTaskExtensions.hasOwnProperty(permission)
     }
@@ -113,11 +115,15 @@ export default class AzBpmProcess {
     }
 
     getCurrentUoPermission() {
-        return this.getCurrentTask().currentUo ? this.getCurrentTask().currentUo.possuiPermissao : true
+        const currentTask = this.getCurrentTask()
+
+        return !!(currentTask.currentUo && currentTask.currentUo.possuiPermissao) || true
     }
 
     getOriginUoPermission() {
-        return this.getCurrentTask().originUo ? this.getCurrentTask().originUo.possuiPermissao : true
+        const currentTask = this.getCurrentTask()
+
+        return !!(currentTask.originUo && currentTask.originUo.possuiPermissao) || true
     }
     getProcess() {
         return this._getBpmAtBusinessKey()
@@ -136,7 +142,9 @@ export default class AzBpmProcess {
     }
 
     getCurrentTaskExtensions() {
-        return this.getCurrentTask().extensions ? this.getCurrentTask().extensions : {}
+        const currentTask = this.getCurrentTask()
+
+        return currentTask.extensions
     }
 
     getProcessDefinitionInfo() {
@@ -266,6 +274,10 @@ export default class AzBpmProcess {
 
     _loadUserTasks() {
         return this.store.dispatch(actionTypes.BPM.GET_USER_TASKS, this._getProcessParams())
+    }
+
+    _loadNextTasks() {
+        return this.store.dispatch(actionTypes.BPM.GET_NEXT_TASKS, this._getProcessParams())
     }
 
     _loadUosFiltered(filters) {
