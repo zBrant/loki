@@ -80,8 +80,18 @@ const createDefaultProps = () => {
     }
 }
 
+const createStore = (uos = {}) => {
+    return new Vuex.Store({
+        state: {
+            loki: {
+                uos,
+            },
+        },
+    })
+}
+
 const createWrapper = ({ propsData = {}, shallow = true, store } = {}) => {
-    const defaultStore = new Vuex.Store({ state: { loki: { uos: {} } } })
+    const defaultStore = createStore()
     const options = {
         localVue,
         propsData,
@@ -102,7 +112,6 @@ describe('AzBpmModal.spec.js', () => {
     beforeEach(() => {
         propsData = createDefaultProps()
         wrapper = createWrapper({ propsData })
-
     })
 
     describe('Props', () => {
@@ -245,8 +254,6 @@ describe('AzBpmModal.spec.js', () => {
 
                 expect(getSelect().exists()).toBe(false)
             })
-
-
         })
     })
 
@@ -274,42 +281,6 @@ describe('AzBpmModal.spec.js', () => {
             expect(wrapper.vm.selectedOrganizationalStructure).toBe(null)
         })
     })
-})
-
-describe('AzBpmModal.extra.coverage', () => {
-    let propsData, wrapper
-
-    const createStore = (uos = {}) => {
-        return new Vuex.Store({
-            state: {
-                loki: {
-                    uos,
-                },
-            },
-        })
-    }
-
-    const mountWith = ({ shallow = true, store, overrideProps = {} } = {}) => {
-        const merged = Object.assign({}, createDefaultProps(), overrideProps)
-        const defaultStore = new Vuex.Store({ state: { loki: { uos: {} } } })
-        const options = {
-            localVue,
-            propsData: merged,
-            stubs: {
-                AzModal: true,
-            },
-            vuetify: new Vuetify(),
-            store: store || defaultStore,
-            provide: { $validator: {} },
-        }
-        const mountingFunction = shallow ? shallowMount : mount
-        return mountingFunction(AzBpmModal, options)
-    }
-
-    beforeEach(() => {
-        propsData = createDefaultProps()
-        wrapper = mountWith({ overrideProps: propsData })
-    })
 
     describe('Computed basics', () => {
         it('currentTaskName, actionLabel and button type flags', () => {
@@ -320,16 +291,16 @@ describe('AzBpmModal.extra.coverage', () => {
         })
 
         it('selectedNextTaskRequiresUO reflects selected decision/route', async () => {
-            // ensure clean state (created() may auto-select first decision)
             wrapper.setData({ selectedHumanDecision: null, selectedRoute: null })
             await Vue.nextTick()
             expect(!!wrapper.vm.selectedNextTaskRequiresUO).toBe(false)
-            // set selectedHumanDecision requiring UO
             wrapper.setData({ selectedHumanDecision: { value: 'value-ex-1', requiresUO: true } })
             await Vue.nextTick()
             expect(wrapper.vm.selectedNextTaskRequiresUO).toBe(true)
-            // set route instead
-            wrapper.setData({ selectedHumanDecision: null, selectedRoute: { value: 'value-ex-2', requiresUO: true } })
+            wrapper.setData({
+                selectedHumanDecision: null,
+                selectedRoute: { value: 'value-ex-2', requiresUO: true },
+            })
             await Vue.nextTick()
             expect(wrapper.vm.selectedNextTaskRequiresUO).toBe(true)
         })
@@ -353,26 +324,24 @@ describe('AzBpmModal.extra.coverage', () => {
                 ],
             }
             const store = createStore(uos)
-            wrapper = mountWith({ shallow: false, store, overrideProps: propsData })
-            wrapper.setData({ selectedOrganizationalStructure: { value: 'acronymTypeAdministrationCompleted', text: 'Órgão' } })
+            wrapper = createWrapper({ propsData, shallow: false, store })
+            wrapper.setData({
+                selectedOrganizationalStructure: { value: 'acronymTypeAdministrationCompleted', text: 'Órgão' },
+            })
             await Vue.nextTick()
             const items = wrapper.vm.selectUOItems
-            expect(items).toEqual([
-                { text: '001 - SG1 - Nome 1', value: '1' },
-            ])
+            expect(items).toEqual([{ text: '001 - SG1 - Nome 1', value: '1' }])
             expect(wrapper.vm.selectUOShow).toEqual({ value: 'acronymTypeAdministrationCompleted', text: 'Órgão' })
         })
 
         it('initializeUOSelect picks originUOId or first item, and reset if invalid', async () => {
             const uos = {
-                upperHierarchyCode: [
-                    { id: 'uo-10', codigoHierarquiaFormatado: '010', sigla: 'UO', nome: 'UO Nome' },
-                ],
+                upperHierarchyCode: [{ id: 'uo-10', codigoHierarquiaFormatado: '010', sigla: 'UO', nome: 'UO Nome' }],
             }
+            propsData = Object.assign({}, propsData, {})
+            propsData.currentTask.currentUo.id = 'uo-10'
             const store = createStore(uos)
-            const overrideProps = JSON.parse(JSON.stringify(propsData))
-            overrideProps.currentTask.currentUo.id = 'uo-10'
-            wrapper = mountWith({ shallow: false, store, overrideProps })
+            wrapper = createWrapper({ propsData, shallow: false, store })
             wrapper.setData({ selectedOrganizationalStructure: { value: 'upperHierarchyCode', text: 'UO' } })
             await Vue.nextTick()
             wrapper.vm.selectedUO = ''
@@ -423,16 +392,17 @@ describe('AzBpmModal.extra.coverage', () => {
         })
 
         it('bpmParameters merges sections for buttonType complete (humanDecision + UO + justification)', async () => {
-            const nextTasks = [
-                { taskId: 't1', justificativa: JSON.stringify({ label: 'Informe', maxLength: 50 }) },
-            ]
-            const override = JSON.parse(JSON.stringify(propsData))
-            override.buttonType = 'complete'
-            override.currentTask.nextTasks = nextTasks
-            wrapper = mountWith({ shallow: false, overrideProps: override })
-            const store = createStore({ upperHierarchyCode: [{ id: 'x', codigoHierarquiaFormatado: '001', sigla: 'S', nome: 'N' }] })
-            wrapper.vm.$store = store
-            wrapper.setData({ selectedOrganizationalStructure: { value: 'upperHierarchyCode', text: 'UO' }, selectedUO: 'x' })
+            const nextTasks = [{ taskId: 't1', justificativa: JSON.stringify({ label: 'Informe', maxLength: 50 }) }]
+            propsData.buttonType = 'complete'
+            propsData.currentTask.nextTasks = nextTasks
+            wrapper = createWrapper({ propsData, shallow: false })
+            wrapper.vm.$store = createStore({
+                upperHierarchyCode: [{ id: 'x', codigoHierarquiaFormatado: '001', sigla: 'S', nome: 'N' }],
+            })
+            wrapper.setData({
+                selectedOrganizationalStructure: { value: 'upperHierarchyCode', text: 'UO' },
+                selectedUO: 'x',
+            })
             wrapper.setData({ selectedHumanDecision: { value: 't1', requiresUO: true } })
             await Vue.nextTick()
             wrapper.setData({ justificationField: 'Porque sim' })
@@ -449,12 +419,16 @@ describe('AzBpmModal.extra.coverage', () => {
         })
 
         it('bpmParameters merges sections for buttonType route (route + UO + justification)', async () => {
-            const override = JSON.parse(JSON.stringify(propsData))
-            override.buttonType = 'route'
-            wrapper = mountWith({ shallow: false, overrideProps: override })
-            const store2 = createStore({ upperHierarchyCode: [{ id: 'x', codigoHierarquiaFormatado: '001', sigla: 'S', nome: 'N' }] })
-            wrapper.vm.$store = store2
-            wrapper.setData({ selectedOrganizationalStructure: { value: 'upperHierarchyCode', text: 'UO' }, selectedUO: 'x' })
+            propsData = Object.assign({}, propsData, {})
+            propsData.buttonType = 'route'
+            wrapper = createWrapper({ propsData, shallow: false })
+            wrapper.vm.$store = createStore({
+                upperHierarchyCode: [{ id: 'x', codigoHierarquiaFormatado: '001', sigla: 'S', nome: 'N' }],
+            })
+            wrapper.setData({
+                selectedOrganizationalStructure: { value: 'upperHierarchyCode', text: 'UO' },
+                selectedUO: 'x',
+            })
             wrapper.setData({ selectedRoute: { value: 'r1', requiresUO: true } })
             await Vue.nextTick()
             wrapper.setData({ justificationField: 'Porque sim' })
@@ -471,14 +445,13 @@ describe('AzBpmModal.extra.coverage', () => {
     })
 
     describe('Justification computed and charCount', () => {
-        it('getLabelJustificationField and getMaxLengthsJustificationField with label and capped maxLength', async () => {
+        it('getLabelJustificationField & getMaxLengthsJustificationField with label and maxLength', async () => {
             const nextTasks = [
                 { taskId: 't2', justificativa: JSON.stringify({ label: 'Motivo detalhado', maxLength: 10000 }) },
             ]
-            const override = JSON.parse(JSON.stringify(propsData))
-            override.buttonType = 'complete'
-            override.currentTask.nextTasks = nextTasks
-            wrapper = mountWith({ overrideProps: override })
+            propsData.buttonType = 'complete'
+            propsData.currentTask.nextTasks = nextTasks
+            wrapper = createWrapper({ propsData })
             wrapper.setData({ selectedHumanDecision: { value: 't2' } })
             await Vue.nextTick()
             expect(wrapper.vm.nextTaskFilteredWithSelectedHumanDecision).toBeTruthy()
@@ -567,13 +540,10 @@ describe('AzBpmModal.extra.coverage', () => {
 
     describe('emitActionEvent and buttons', () => {
         it('emits action with bpmParameters when form is valid or no form', async () => {
-            const nextTasks = [
-                { taskId: 't3', justificativa: JSON.stringify({}) },
-            ]
-            const override = JSON.parse(JSON.stringify(propsData))
-            override.buttonType = 'complete'
-            override.currentTask.nextTasks = nextTasks
-            wrapper = mountWith({ shallow: false, overrideProps: override })
+            const nextTasks = [{ taskId: 't3', justificativa: JSON.stringify({}) }]
+            propsData.buttonType = 'complete'
+            propsData.currentTask.nextTasks = nextTasks
+            wrapper = createWrapper({ propsData, shallow: false })
             wrapper.setData({ selectedHumanDecision: { value: 't3' } })
             await wrapper.vm.emitActionEvent()
             expect(wrapper.emitted('action')).toBeTruthy()
@@ -586,19 +556,21 @@ describe('AzBpmModal.extra.coverage', () => {
             wrapper.vm.$refs.form = { validate: jest.fn().mockResolvedValue(false) }
             const prevCount = wrapper.emitted('action').length
             await wrapper.vm.emitActionEvent()
-            expect(wrapper.emitted('action').length).toBe(prevCount) // no new emit
+            expect(wrapper.emitted('action')).toHaveLength(prevCount) // no new emit
         })
 
         it('button-action disabled when requires UO and no UO selected', async () => {
-            const override = JSON.parse(JSON.stringify(propsData))
-            override.buttonType = 'complete'
-            override.components.select.humanDecision.show = true
-            wrapper = mountWith({ shallow: false, overrideProps: override })
+            propsData.buttonType = 'complete'
+            propsData.components.select.humanDecision.show = true
+            wrapper = createWrapper({ propsData, shallow: false })
             wrapper.setData({ selectedHumanDecision: { value: 'x', requiresUO: true } })
             await Vue.nextTick()
             const btn = wrapper.find('[data-test="button-action"]')
             expect(btn.props('disabled')).toBe(true)
-            wrapper.setData({ selectedOrganizationalStructure: { value: 'upperHierarchyCode', text: 'UO' }, selectedUO: 'abc' })
+            wrapper.setData({
+                selectedOrganizationalStructure: { value: 'upperHierarchyCode', text: 'UO' },
+                selectedUO: 'abc',
+            })
             await Vue.nextTick()
             expect(btn.props('disabled')).toBe(false)
         })
