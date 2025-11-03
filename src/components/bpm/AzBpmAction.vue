@@ -160,7 +160,8 @@ export default {
             await this.executeButtonAction(buttonType, bpmParameters)
             this.closeModal()
         },
-        openModal() {
+        async openModal() {
+            await this.process.loadNextTasks()
             this.showModal = true
         },
         closeModal() {
