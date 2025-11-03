@@ -1457,6 +1457,11 @@ describe('AzBpmProcess', () => {
             expect(typeof azBpmProcess.load).toBe('function')
         })
 
+        it('Should have public loadNextTasks method', () => {
+            expect(azBpmProcess).toHaveProperty('loadNextTasks')
+            expect(typeof azBpmProcess.loadNextTasks).toBe('function')
+        })
+
         it('Should have public initialize method', () => {
             expect(azBpmProcess).toHaveProperty('initialize')
             expect(typeof azBpmProcess.initialize).toBe('function')

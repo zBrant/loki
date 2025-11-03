@@ -75,6 +75,7 @@ jest.mock('../../utils/bpm/AzBpmProcess.js', () => {
                 bpmUoEnabled: true,
             })),
             load: jest.fn(),
+            loadNextTasks: jest.fn(),
         }
     })
 })
@@ -347,11 +348,12 @@ describe('AzBpmAction.spec.js', () => {
                 expect(getButton().html()).toContain(wrapper.vm.components.button[key].label)
             })
 
-            it('Should open modal on click', async () => {
+            it('Should load next tasks and open modal on click', async () => {
                 getButton().vm.$emit('click')
 
                 await wrapper.vm.$nextTick()
 
+                expect(wrapper.vm.$data.process.loadNextTasks).toBeCalledTimes(1)
                 expect(wrapper.vm.showModal).toBe(true)
             })
 

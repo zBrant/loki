@@ -148,6 +148,16 @@ export default {
         return response.data
     },
 
+    async [actionTypes.BPM.GET_NEXT_TASKS]({ commit, state }, { processKey, businessKey }) {
+        const taskKey = state.bpm.process[processKey][businessKey].instance.currentTask.key
+        const response = await axiosInstance.get(
+            `${state.bpm.api}/getNextTasksByDefinition/${processKey}/${businessKey}?taskDefinitionKey=${taskKey}`
+        )
+        commit(mutationTypes.BPM.SET_NEXT_TASKS, { processKey, businessKey, nextTasks: response.data.nextTasks })
+
+        return response.data
+    },
+
     [actionTypes.BPM.CLAIM]({ state }, { taskId }) {
         return axiosInstance.get(`${state.bpm.api}/claim/${taskId}`)
     },
@@ -164,13 +174,13 @@ export default {
         return axiosInstance.get(`${state.bpm.api}/uncomplete/${processKey}/${taskId}`)
     },
 
-    async [actionTypes.UO.FIND_ALL_ACTIVE]({ commit },queryParams) {
-        const {data} = await axiosInstance.get(`/hal/unidadeOrganizacional/buscarComFiltros?${queryParams}`)
+    async [actionTypes.UO.FIND_ALL_ACTIVE]({ commit }, queryParams) {
+        const { data } = await axiosInstance.get(`/hal/unidadeOrganizacional/buscarComFiltros?${queryParams}`)
 
-        if(queryParams.has('tipoAdministracaoPreenchido')){
+        if (queryParams.has('tipoAdministracaoPreenchido')) {
             commit(mutationTypes.UO.SET_ACRONYM_TYPE_ADINISTRATION_COMPLETED, data)
         }
-        if(queryParams.has('codigoHierarquiaSuperior')){
+        if (queryParams.has('codigoHierarquiaSuperior')) {
             commit(mutationTypes.UO.SET_UPPER_HIERARCHY_CODE, data)
         }
 
@@ -190,4 +200,3 @@ function getFlowbeeAccessParams(accessToken) {
         }
     }
 }
-
