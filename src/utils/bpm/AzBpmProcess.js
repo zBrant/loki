@@ -117,13 +117,13 @@ export default class AzBpmProcess {
     getCurrentUoPermission() {
         const currentTask = this.getCurrentTask()
 
-        return !!(currentTask.currentUo && currentTask.currentUo.possuiPermissao) || true
+        return !currentTask.currentUo || !!currentTask.currentUo.possuiPermissao
     }
 
     getOriginUoPermission() {
         const currentTask = this.getCurrentTask()
 
-        return !!(currentTask.originUo && currentTask.originUo.possuiPermissao) || true
+        return !currentTask.originUo || !!currentTask.originUo.possuiPermissao
     }
     getProcess() {
         return this._getBpmAtBusinessKey()
@@ -144,7 +144,7 @@ export default class AzBpmProcess {
     getCurrentTaskExtensions() {
         const currentTask = this.getCurrentTask()
 
-        return currentTask.extensions
+        return currentTask.extensions || {}
     }
 
     getProcessDefinitionInfo() {
