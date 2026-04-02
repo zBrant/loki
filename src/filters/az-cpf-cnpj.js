@@ -7,7 +7,7 @@ const filter = (cpfCnpj) => {
     if (cpfCnpj.length < 12) {
         return new StringMask('###.###.###-##').apply(cpfCnpj)
     } else {
-        return new StringMask('##.###.###/####-##').apply(cpfCnpj)
+        return new StringMask('AA.AAA.AAA/AAAA-##').apply(cpfCnpj)
     }
 }
 
