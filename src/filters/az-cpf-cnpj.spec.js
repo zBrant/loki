@@ -15,4 +15,9 @@ describe('azCpfCnpj', () => {
         const resultado = azCpfCnpj('38878062000173')
         expect(resultado).toEqual('38.878.062/0001-73')
     })
+
+    it('Deve retornar valor cnpj formatado alfanumérico', () => {
+        const resultado = azCpfCnpj('K8PVGJCL000103')
+        expect(resultado).toEqual('K8.PVG.JCL/0001-03')
+    })
 })
