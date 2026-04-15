@@ -244,19 +244,17 @@ export default {
                 return null
             }
 
-            let working = raw.replace(/[^\d,.-]/g, '')
+            let working = raw.replace(/[^\d,-]/g, '')
             const isNegative = working.indexOf('-') === 0
             working = working.replace(/-/g, '')
 
             const lastComma = working.lastIndexOf(',')
-            const lastDot = working.lastIndexOf('.')
-            const decimalIndex = Math.max(lastComma, lastDot)
 
             let integerPart = working
             let fractionalPart = ''
-            if (decimalIndex >= 0) {
-                integerPart = working.substring(0, decimalIndex)
-                fractionalPart = working.substring(decimalIndex + 1)
+            if (lastComma >= 0) {
+                integerPart = working.substring(0, lastComma)
+                fractionalPart = working.substring(lastComma + 1)
             }
 
             integerPart = integerPart.replace(/[^\d]/g, '')
