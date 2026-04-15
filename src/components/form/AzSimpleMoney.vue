@@ -140,6 +140,74 @@ export default {
         this.setFormattedValue(this.value, true)
     },
     methods: {
+        normalizeEditableValue(value) {
+            if (!value) {
+                return ''
+            }
+
+            const parts = String(value).split(',')
+            const integerPart = parts.shift()
+            const fractionalPart = parts.join('')
+
+            if (this.precision <= 0) {
+                return integerPart
+            }
+
+            return fractionalPart ? `${integerPart},${fractionalPart.substring(0, this.precision)}` : integerPart
+        },
+        canInsertDigitAtCurrentCursor() {
+            if (this.precision <= 0) {
+                return true
+            }
+
+            const input = this.getInput()
+            if (!input) {
+                return true
+            }
+
+            const value = input.value || ''
+            const commaIndex = value.indexOf(',')
+            if (commaIndex < 0) {
+                return true
+            }
+
+            const selectionStart = input.selectionStart || 0
+            const selectionEnd = input.selectionEnd || 0
+            if (selectionEnd > selectionStart) {
+                return true
+            }
+
+            if (selectionStart <= commaIndex) {
+                return true
+            }
+
+            const fractionalLength = value.substring(commaIndex + 1).replace(/[^\d]/g, '').length
+            return fractionalLength < this.precision
+        },
+        isAllowedControlKey(event) {
+            const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter', 'Escape']
+            if (allowedKeys.includes(event.key)) {
+                return true
+            }
+
+            return (event.ctrlKey || event.metaKey) && ['a', 'c', 'v', 'x', 'z', 'y'].includes(event.key.toLowerCase())
+        },
+        sanitizeInputValue(value) {
+            let sanitized = String(value || '').replace(/[^\d.,-]/g, '')
+            if (!this.negative) {
+                sanitized = sanitized.replace(/-/g, '')
+            } else {
+                const hasLeadingNegative = sanitized.trim().startsWith('-')
+                sanitized = sanitized.replace(/-/g, '')
+                sanitized = hasLeadingNegative ? `-${sanitized}` : sanitized
+            }
+
+            const hasLeadingNegative = sanitized.startsWith('-')
+            const unsigned = hasLeadingNegative ? sanitized.slice(1) : sanitized
+            const normalizedUnsigned = this.normalizeEditableValue(unsigned)
+
+            return hasLeadingNegative ? `-${normalizedUnsigned}` : normalizedUnsigned
+        },
         getInput() {
             if (!this.$refs.azSimpleMoney || !this.$refs.azSimpleMoney.$el) {
                 return null
@@ -158,7 +226,62 @@ export default {
             this.formattedValue = target ? target.value : this.formattedValue
         },
         checkKeydown(event) {
-            this.validateNegative(event)
+            if (this.isAllowedControlKey(event)) {
+                return
+            }
+
+            if (event.key === '-') {
+                if (!this.negative) {
+                    event.preventDefault()
+                    return
+                }
+
+                const input = this.getInput()
+                if (!input) {
+                    return
+                }
+
+                const hasMinus = input.value.includes('-')
+                const isReplacingAll = input.selectionStart === 0 && input.selectionEnd === input.value.length
+                const isAtStart = input.selectionStart === 0
+
+                if ((hasMinus && !isReplacingAll) || !isAtStart) {
+                    event.preventDefault()
+                }
+                return
+            }
+
+            if (event.key === ',') {
+                if (this.precision <= 0) {
+                    event.preventDefault()
+                    return
+                }
+
+                const input = this.getInput()
+                if (!input) {
+                    return
+                }
+
+                const value = input.value || ''
+                const hasComma = value.includes(',')
+                const selectionStart = input.selectionStart || 0
+                const selectionEnd = input.selectionEnd || 0
+                const selectedText = value.substring(selectionStart, selectionEnd)
+
+                if (hasComma && selectedText.indexOf(',') < 0) {
+                    event.preventDefault()
+                }
+                return
+            }
+
+            if (/\d/.test(event.key) && !this.canInsertDigitAtCurrentCursor()) {
+                event.preventDefault()
+                return
+            }
+
+            if (!/[\d.,]/.test(event.key)) {
+                event.preventDefault()
+            }
         },
         async checkKeyup(event) {
             if (event.key === 'Tab' || this.readonly) {
@@ -171,8 +294,6 @@ export default {
                 await this.updateValue('keyupEnter')
             } else if (event.key === 'Escape') {
                 await this.updateValue('keyupEsc')
-            } else if (event.key === '+') {
-                await this.updateSign()
             } else if (event.key === 'Backspace') {
                 await this.removeNegativeZero()
             } else {
@@ -320,6 +441,11 @@ export default {
 
             this.clickedField = true
             this.syncFormattedValue(event)
+            const sanitizedValue = this.sanitizeInputValue(this.formattedValue)
+            if (sanitizedValue !== this.formattedValue) {
+                this.formattedValue = sanitizedValue
+                this.setInputValue(this.formattedValue)
+            }
         },
         async handleBlur(event) {
             this.syncFormattedValue(event)
