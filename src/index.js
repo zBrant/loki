@@ -26,6 +26,7 @@ import AzDate from './components/form/AzDate'
 import AzForm from './components/form/AzForm'
 import AzFormbar from './components/form/AzFormbar'
 import AzMoney from './components/form/AzMoney'
+import AzSimpleMoney from './components/form/AzSimpleMoney'
 import AzTextView from './components/form/AzTextView'
 import AzComboEnum from './components/form/AzComboEnum'
 import AzFileUpload from './components/file/AzFileUpload'
@@ -105,6 +106,7 @@ const lokiPlugin = {
         Vue.component('az-form', AzForm)
         Vue.component('az-formbar', AzFormbar)
         Vue.component('az-money', AzMoney)
+        Vue.component('az-money3', AzSimpleMoney)
         Vue.component('az-text-view', AzTextView)
         Vue.component('az-combo-enum', AzComboEnum)
         Vue.component('az-file-upload', AzFileUpload)
