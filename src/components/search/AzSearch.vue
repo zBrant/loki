@@ -53,7 +53,7 @@
 
             <div class="actions">
                 <v-btn class="ad-search" depressed color="primary" @click="advancedSearch()">Buscar</v-btn>
-                <a class="ad-clear" @click="clear()">Limpar</a>
+                <v-btn class="ad-clear" depressed text color="primary" @click="clear()">Limpar</v-btn>
             </div>
         </v-navigation-drawer>
     </div>
@@ -223,7 +223,7 @@ export default {
         overflow-y hidden
         position fixed
         border-left 1px solid #ddd
-        z-index 4
+        z-index 10
 
         .btn-close
             font-size 20px
@@ -252,16 +252,15 @@ export default {
                 color white
                 font-size 13px
                 height 30px
-                margin 0 10px 0 0
+                margin 0 6px 0 0
                 text-transform unset
 
             .ad-clear
                 width 30%
-                margin-left 10px
-                color var(--v-primary-base)
-                text-align center
-                padding 5px
+                height 30px
+                padding 0px
                 font-size 13px
+                text-transform unset
 
         .title
             color rgba(255, 255, 255, .8)
